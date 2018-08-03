@@ -11,6 +11,8 @@ import { renderToString } from 'react-dom/server';
 import { Provider } from 'react-redux';
 import React from 'react';
 import App from '../src/App';
+import { ConnectedRouter } from 'react-router-redux';
+import createHistory from 'history/createMemoryHistory';
 
 const port = process.env.PORT || 3001;
 const app = express();
@@ -64,22 +66,28 @@ if (process.env.NODE_ENV === 'development') {
 
 }
 
-app.get(['/'], function * (req, res) {
+app.get(['/', '/questions/:id'], function * (req, res) {
   let index = yield fs.readFile('./public/index.html','utf-8');
 
   const initialState = {
     questions: []
   };
 
+  const history = createHistory({
+    initialEntries: [req.path],
+  });
+
   const questions = yield getQuestions();
   initialState.questions = questions.items;
 
-  const store = getStore(initialState);
+  const store = getStore(history,initialState);
 
   if (useServerRender) {
     const appRendered = renderToString(
       <Provider store={store}>
-        <App />
+        <ConnectedRouter history={history}>
+          <App />
+        </ConnectedRouter>
       </Provider>
     );
     index = index.replace(`<%= preloadedApplication %>`, appRendered);
